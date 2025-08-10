@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jump-host-config
+  namespace: dkp-over-dvp
+data:
+  ssh-pub-key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIQNkaNZrgKMUA0Mo73O4fBL2vK8kLBcu0EpUSY114j+ cloud"

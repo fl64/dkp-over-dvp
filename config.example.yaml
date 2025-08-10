@@ -1,0 +1,172 @@
+---
+apiVersion: deckhouse.io/v1
+kind: InitConfiguration
+deckhouse:
+  imagesRepo: registry.deckhouse.ru/deckhouse/ce
+  registryDockerCfg: eyJhdXRocyI6IHsgInJlZ2lzdHJ5LmRlY2tob3VzZS5ydSI6IHt9fX0K
+---
+apiVersion: deckhouse.io/v1
+kind: ClusterConfiguration
+clusterType: Cloud
+cloud:
+  provider: DVP
+  prefix: demo-cluster
+podSubnetCIDR: 10.112.0.0/16
+serviceSubnetCIDR: 10.223.0.0/16
+kubernetesVersion: "Automatic"
+clusterDomain: "internal.cluster.local"
+---
+apiVersion: deckhouse.io/v1
+kind: DVPClusterConfiguration
+layout: Standard
+sshPublicKey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOuxl2cpW+CHOMRmGWvTQHCaHEzwWD94pK7ECiCoCj2h cloud
+masterNodeGroup:
+  replicas: 1
+  instanceClass:
+    virtualMachine:
+      bootloader: EFI
+      cpu:
+        cores: 4
+      memory:
+        size: 10Gi
+      ipAddresses:
+        - Auto
+      virtualMachineClassName: "generic"
+    rootDisk:
+      size: 50Gi
+      storageClass: rv-thin-r1
+      image:
+        kind: VirtualImage
+        name: ubuntu-24-04-lts
+    etcdDisk:
+      size: 15Gi
+      storageClass: rv-thin-r1
+provider:
+  kubeconfigDataBase64: YXBpVmVyc2lvbjogdjEKY2x1c3RlcnM6Ci0gY2x1c3RlcjoKICAgIHNlcnZlcjogaHR0cHM6Ly9hcGkucHQuZHZwLmZsYW50LmRldgogIG5hbWU6IGR2cApjb250ZXh0czoKLSBjb250ZXh0OgogICAgY2x1c3RlcjogZHZwCiAgICBuYW1lc3BhY2U6IGRrcC1vdmVyLWR2cAogICAgdXNlcjogZGtwLW92ZXItZHZwQGR2cAogIG5hbWU6IGRrcC1vdmVyLWR2cEBkdnAKY3VycmVudC1jb250ZXh0OiBka3Atb3Zlci1kdnBAZHZwCmtpbmQ6IENvbmZpZwpwcmVmZXJlbmNlczoge30KdXNlcnM6Ci0gbmFtZTogZGtwLW92ZXItZHZwQGR2cAogIHVzZXI6CiAgICB0b2tlbjogZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklubDFhVlV4T0VFM1dGUlhUVjl4UzNkRlZGaFdWVGQwTkVwUWMzbHRjbVV3U2pGc1lVOUJNbTl6ZVVFaWZRLmV5SnBjM01pT2lKcmRXSmxjbTVsZEdWekwzTmxjblpwWTJWaFkyTnZkVzUwSWl3aWEzVmlaWEp1WlhSbGN5NXBieTl6WlhKMmFXTmxZV05qYjNWdWRDOXVZVzFsYzNCaFkyVWlPaUprYTNBdGIzWmxjaTFrZG5BaUxDSnJkV0psY201bGRHVnpMbWx2TDNObGNuWnBZMlZoWTJOdmRXNTBMM05sWTNKbGRDNXVZVzFsSWpvaVpHdHdMVzkyWlhJdFpIWndJaXdpYTNWaVpYSnVaWFJsY3k1cGJ5OXpaWEoyYVdObFlXTmpiM1Z1ZEM5elpYSjJhV05sTFdGalkyOTFiblF1Ym1GdFpTSTZJbVJyY0MxdmRtVnlMV1IyY0NJc0ltdDFZbVZ5Ym1WMFpYTXVhVzh2YzJWeWRtbGpaV0ZqWTI5MWJuUXZjMlZ5ZG1salpTMWhZMk52ZFc1MExuVnBaQ0k2SWpnek1UTmhNekptTFdKbE5UVXROR0k1TlMxaFlUbGlMV0U1TjJFd1kySmtNV05rTkNJc0luTjFZaUk2SW5ONWMzUmxiVHB6WlhKMmFXTmxZV05qYjNWdWREcGthM0F0YjNabGNpMWtkbkE2Wkd0d0xXOTJaWEl0Wkhad0luMC5nekR6N0tMWHVCMXNLM0t2cjRlSVJ6bll0UGMwdm5zVDZGNHRCazlySlFBbWwwMVkxNFdKMjJvVFZUaVBFR2NJZFpMNVdjUG43c2czRk0td19DSnRZSXU3UDFQYTBsTXI3N1RXMjZ5eFREY3R0QkhjZ1lnQTM5VF9tN2JsN2ZzZnd4dnpzaFVwS01mWkdTMW9wQjFlOFkyN1RJanVheTJDOUVKVEc4N040d3h6T2J3bzZnNFFKR3hEb0RMY1NoTzh4cFdwZGRPY3Iyd0gydWhhMTZxRzFsNHd0NkhmZ3FhVnl6VDhEeTJoRlo4Vms1RUkxSEdYZWJUM2Ffc0VEYkNPeXljdGcwOGp4aE5TS3NobGpvZGlGNUx4WWdKZks5NVRiNGJIU1c1cVJHYllGRkM3WmMxV194Sm9WZnFIOUpmZF9NRklMVTZ6NUtCNnFuQzZFNmExVkEK
+  namespace: dkp-over-dvp
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: DVPInstanceClass
+metadata:
+  name: worker
+spec:
+  virtualMachine:
+    virtualMachineClassName: "generic"
+    cpu:
+      cores: 4
+    memory:
+      size: 8Gi
+    bootloader: EFI
+  rootDisk:
+    size: 50Gi
+    storageClass: rv-thin-r1
+    image:
+      kind: VirtualImage
+      name: ubuntu-24-04-lts
+---
+apiVersion: deckhouse.io/v1
+kind: IngressNginxController
+metadata:
+  name: main
+spec:
+  inlet: HostPort
+  enableIstioSidecar: false
+  ingressClass: nginx
+  hostPort:
+    httpPort: 80
+    httpsPort: 443
+  nodeSelector:
+    node-role.kubernetes.io/master: ''
+  tolerations:
+    - effect: NoSchedule
+      operator: Exists
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: ModuleConfig
+metadata:
+  name: deckhouse
+spec:
+  version: 1
+  enabled: true
+  settings:
+    bundle: Default
+    releaseChannel: Stable
+    logLevel: Info
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: ModuleConfig
+metadata:
+  name: global
+spec:
+  version: 1
+  settings:
+    modules:
+      publicDomainTemplate: "%s.example.com"
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: ModuleConfig
+metadata:
+  name: user-authn
+spec:
+  version: 1
+  enabled: true
+  settings:
+    controlPlaneConfigurator:
+      dexCAMode: DoNotNeed
+    publishAPI:
+      enabled: true
+      https:
+        mode: Global
+        global:
+          kubeconfigGeneratorMasterCA: ""
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: ModuleConfig
+metadata:
+  name: cni-cilium
+spec:
+  version: 1
+  enabled: true
+  settings:
+    tunnelMode: VXLAN
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: ModuleConfig
+metadata:
+  name: prompp
+spec:
+  version: 1
+  enabled: true
+---
+apiVersion: deckhouse.io/v1
+kind: NodeGroup
+metadata:
+  name: worker
+spec:
+  nodeType: CloudEphemeral
+  cloudInstances:
+    minPerZone: 2
+    maxPerZone: 2
+    classReference:
+      kind: DVPInstanceClass
+      name: worker
+---
+apiVersion: deckhouse.io/v1
+kind: User
+metadata:
+  name: admin
+spec:
+  email: admin@deckhouse.io
+  # echo "demodemo" | htpasswd -BinC 10 "" | cut -d: -f2 | base64 -w0
+  password: JDJ5JDEwJEE2VGxUL1ZydGJ5LnNaYUVMdlFDeXVIby9uM2JXLnZPTmhMTmRtMVJYSm4zOTBobjNPTTNXCgo=
+---
+apiVersion: deckhouse.io/v1
+kind: ClusterAuthorizationRule
+metadata:
+  name: admin
+spec:
+  subjects:
+    - kind: User
+      name: admin@deckhouse.io
+  accessLevel: SuperAdmin
+  portForwarding: true

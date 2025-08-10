@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jump-host
+  namespace: dkp-over-dvp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jump-host
+  template:
+    metadata:
+      labels:
+        app: jump-host
+    spec:
+      containers:
+        - name: jump-host
+          image: fl64/ssh-jumphost:v0.2.0
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "200m"
+              memory: "200Mi"
+            requests:
+              cpu: "200m"
+              memory: "200Mi"
+          ports:
+            - containerPort: 2222
+          env:
+            - name: SSH_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: jump-host-config
+                  key: ssh-pub-key
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
