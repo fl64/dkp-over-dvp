@@ -17,6 +17,7 @@ tasks:
     silent: true
     desc: Preflight / Checks if all dependencies are installed
     cmds:
+      - echo "Checking dependencies..."
       - |
         deps=("d8" "yq" "jq" "docker" "htpasswd")
         for dep in "${deps[@]}"; do
@@ -28,7 +29,9 @@ tasks:
         echo "All dependencies are installed!"
 
   init:
+    silent: true
     cmds:
+    - echo "Create dir structure"
     - mkdir -p {{ .TMP_DIR }}
     - mkdir -p "{{ .SSH_DIR }}"
     - cp config.example.yaml config.yaml
@@ -39,7 +42,9 @@ tasks:
 
   generate-password:
     desc: Preflight / Generate password for admin@deckhouse.io user
+    silent: true
     cmds:
+      - echo "Generating password"
       - date +%s | sha256sum | base64 | head -c 10 > {{ .PASSWORD_FILE }}
       - |
         echo $(cat {{ .TMP_DIR }}/password.txt) | htpasswd -BinC 10 "" | cut -d: -f2 | base64 -w0 > {{ .PASSWORD_HASH_FILE }}
@@ -50,9 +55,11 @@ tasks:
 
   generate-ssh-keys:
     desc: Preflight / Generate ssh keypair for jump-host
+    silent: true
     deps:
     - init
     cmds:
+      - echo "Generating ssh keypair"
       - yes | ssh-keygen -t ed25519 -b 1024 -f {{ .SSH_PRIV_KEY_FILE }} -N "" -C "cloud" -v
       - chmod 0600 "{{ .SSH_PUB_KEY_FILE }}"
       - chmod 0400 "{{ .SSH_PRIV_KEY_FILE }}"
@@ -61,22 +68,28 @@ tasks:
 
   infra-deploy:
     desc: Create infra
+    silent: true
     cmds:
+      - echo "Deploy infra"
       - d8 k apply -k ./infra
       - d8 k -n {{ .NAMESPACE }} wait --for=condition=Ready pod -l app=jump-host --timeout=300s
 
   infra-undeploy:
     desc: Remove infra
+    silent: true
     aliases:
     - uninstall
     cmds:
+      - echo "Undeploy infra"
       - d8 k delete -k ./infra || true
       - d8 k wait --for=delete namespace/{{ .NAMESPACE }} --timeout 300s || true
 
   render-kubeconfig:
     desc: Render kubeconfig for dvp-cloud-provider
+    silent: true
     deps:
     - init
+    - infra-deploy
     vars:
       SERVER:
         sh: echo https://$(d8 k -n d8-user-authn get ingress kubernetes-api -o json | jq .spec.rules[0].host -r)
@@ -84,8 +97,8 @@ tasks:
         sh: d8 k -n d8-user-authn get secrets kubernetes-tls -o json | jq '.data."tls.crt"' -r
       TOKEN:
         sh: d8 k -n {{ .NAMESPACE }} get secret dkp-over-dvp -ojson | jq -r '.data.token' | base64 -d
-    silent: true
     cmds:
+    - echo "Render kubeconfig"
     - |
         cat <<EOF > {{ .TMP_DIR }}/kubeconfig.yaml
         apiVersion: v1
@@ -110,6 +123,7 @@ tasks:
 
   update-secrets:
     desc: Update secrets (generate kubeconfig for dvp-cloud-provider, ssh keys, admin password)
+    silent: true
     cmds:
     - task: render-kubeconfig
     - task: generate-ssh-keys
@@ -129,6 +143,7 @@ tasks:
       yq eval --inplace '(select(.kind == "User" and .metadata.name == "admin").spec.password) = env(PASSWORD_HASH)' config.yaml
 
   bootstrap:
+    silent: true
     desc: Bootstrap DKP over DVP via dhctl
     vars:
       JUMPHOST_EXT_IP:
@@ -136,6 +151,7 @@ tasks:
       JUMPHOST_NODEPORT:
         sh: d8 k -n {{ .NAMESPACE }} get svc jump-host -o json | jq '.spec.ports[] | select(.port==2222) | .nodePort'
     cmds:
+    - echo "Bootstrap DKP over DVP"
     - task: update-secrets
     - |
       docker run --pull=always -it \
@@ -151,6 +167,7 @@ tasks:
               --ssh-bastion-user=user
 
   install:
+    silent: true
     vars:
       start_time:
         sh: date +%s
@@ -164,6 +181,7 @@ tasks:
 
   ssh-to-master:
     desc: SSH to first master node
+    silent: true
     vars:
       MASTER_NAME:
         sh: d8 k -n {{ .NAMESPACE }} get vm -l dvp.deckhouse.io/node-group=master -o jsonpath="{.items[0].metadata.name}"
@@ -173,3 +191,14 @@ tasks:
   clean:
     cmds:
     - rm -rf {{ .TMP_DIR }}
+
+  show-jumphost-info:
+    desc: Show jumphost info
+    silent: true
+    vars:
+      JUMPHOST_EXT_IP:
+        sh: d8 k -n {{ .NAMESPACE }} exec -it deployment/jump-host -- dig @resolver4.opendns.com myip.opendns.com +short 2>/dev/null
+      JUMPHOST_NODEPORT:
+        sh: d8 k -n {{ .NAMESPACE }} get svc jump-host -o json | jq '.spec.ports[] | select(.port==2222) | .nodePort'
+    cmds:
+      - echo "jumphost {{ .JUMPHOST_EXT_IP }}:{{ .JUMPHOST_NODEPORT }}"
