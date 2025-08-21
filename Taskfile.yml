@@ -17,7 +17,7 @@ tasks:
     silent: true
     desc: Preflight / Checks if all dependencies are installed
     cmds:
-      - echo "Checking dependencies..."
+      - echo "✨ Checking dependencies..."
       - |
         deps=("d8" "yq" "jq" "docker" "htpasswd")
         for dep in "${deps[@]}"; do
@@ -31,7 +31,7 @@ tasks:
   init:
     silent: true
     cmds:
-    - echo "Create dir structure"
+    - echo "✨ Create dir structure"
     - mkdir -p {{ .TMP_DIR }}
     - mkdir -p "{{ .SSH_DIR }}"
     - cp config.example.yaml config.yaml
@@ -44,7 +44,7 @@ tasks:
     desc: Preflight / Generate password for admin@deckhouse.io user
     silent: true
     cmds:
-      - echo "Generating password"
+      - echo "✨ Generating password"
       - date +%s | sha256sum | base64 | head -c 10 > {{ .PASSWORD_FILE }}
       - |
         echo $(cat {{ .TMP_DIR }}/password.txt) | htpasswd -BinC 10 "" | cut -d: -f2 | base64 -w0 > {{ .PASSWORD_HASH_FILE }}
@@ -59,7 +59,7 @@ tasks:
     deps:
     - init
     cmds:
-      - echo "Generating ssh keypair"
+      - echo "✨ Generating ssh keypair"
       - yes | ssh-keygen -t ed25519 -b 1024 -f {{ .SSH_PRIV_KEY_FILE }} -N "" -C "cloud" -v
       - chmod 0600 "{{ .SSH_PUB_KEY_FILE }}"
       - chmod 0400 "{{ .SSH_PRIV_KEY_FILE }}"
@@ -70,7 +70,7 @@ tasks:
     desc: Create infra
     silent: true
     cmds:
-      - echo "Deploy infra"
+      - echo "🚀 Deploy infra"
       - d8 k apply -k ./infra
       - d8 k -n {{ .NAMESPACE }} wait --for=condition=Ready pod -l app=jump-host --timeout=300s
 
@@ -80,7 +80,7 @@ tasks:
     aliases:
     - uninstall
     cmds:
-      - echo "Undeploy infra"
+      - echo "💀 Undeploy infra"
       - d8 k delete -k ./infra || true
       - d8 k wait --for=delete namespace/{{ .NAMESPACE }} --timeout 300s || true
 
@@ -96,9 +96,9 @@ tasks:
       CERT:
         sh: d8 k -n d8-user-authn get secrets kubernetes-tls -o json | jq '.data."tls.crt"' -r
       TOKEN:
-        sh: d8 k -n {{ .NAMESPACE }} get secret dkp-over-dvp -ojson | jq -r '.data.token' | base64 -d
+        sh: d8 k -n {{ .NAMESPACE }} get secret dkp-over-dvp -o json | jq -r '.data.token' | base64 -d
     cmds:
-    - echo "Render kubeconfig"
+    - echo "✨ Render kubeconfig"
     - |
         cat <<EOF > {{ .TMP_DIR }}/kubeconfig.yaml
         apiVersion: v1
@@ -128,7 +128,7 @@ tasks:
     - task: render-kubeconfig
     - task: generate-ssh-keys
     - task: generate-password
-    - echo "Update ssh keys"
+    - echo "✨ Update ssh keys"
     - |
         export SSH_PUB_KEY="$(cat {{ .SSH_PUB_KEY_FILE }})"
         yq eval --inplace '(select(.kind == "DVPClusterConfiguration").sshPublicKey) = env(SSH_PUB_KEY)' config.yaml
@@ -151,12 +151,12 @@ tasks:
       JUMPHOST_NODEPORT:
         sh: d8 k -n {{ .NAMESPACE }} get svc jump-host -o json | jq '.spec.ports[] | select(.port==2222) | .nodePort'
     cmds:
-    - echo "Bootstrap DKP over DVP"
+    - echo "🚀 Bootstrap DKP over DVP"
     - task: update-secrets
     - |
       docker run --pull=always -it \
         -v "${PWD}/config.yaml:/config.yaml" \
-        -v "${PWD}/tmp/ssh/:/tmp/.ssh/" \
+        -v "{{ .SSH_DIR }}:/tmp/.ssh/" \
         registry.deckhouse.ru/deckhouse/ce/install:stable \
             dhctl bootstrap \
             --config=/config.yaml \
@@ -181,12 +181,12 @@ tasks:
 
   ssh-to-master:
     desc: SSH to first master node
-    silent: true
+    #silent: true
     vars:
       MASTER_NAME:
-        sh: d8 k -n {{ .NAMESPACE }} get vm -l dvp.deckhouse.io/node-group=master -o jsonpath="{.items[0].metadata.name}"
+        sh: d8 k -n {{ .NAMESPACE }} get vm -l dvp.deckhouse.io/node-group=master -l dvp.deckhouse.io/cluster-prefix=dkp-ce-demo -o jsonpath="{.items[0].metadata.name}"
     cmds:
-      - /usr/bin/ssh -i ./tmp/ssh/cloud -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o 'ProxyCommand=d8 v port-forward --stdio=true {{ .MASTER_NAME }}.{{ .NAMESPACE }} 22' ubuntu@{{ .MASTER_NAME }}
+      - /usr/bin/ssh -i {{ .SSH_PRIV_KEY_FILE }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o 'ProxyCommand=d8 v port-forward --stdio=true {{ .MASTER_NAME }}.{{ .NAMESPACE }} 22' ubuntu@{{ .MASTER_NAME }}
 
   clean:
     cmds:
