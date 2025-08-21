@@ -186,7 +186,7 @@ tasks:
       MASTER_NAME:
         sh: d8 k -n {{ .NAMESPACE }} get vm -l dvp.deckhouse.io/node-group=master -o jsonpath="{.items[0].metadata.name}"
     cmds:
-      - /usr/bin/ssh -i ./demo/ssh/cloud -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o 'ProxyCommand=d8 v port-forward --stdio=true {{ .MASTER_NAME }}.{{ .NAMESPACE }} 22' ubuntu@{{ .MASTER_NAME }}
+      - /usr/bin/ssh -i ./tmp/ssh/cloud -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o 'ProxyCommand=d8 v port-forward --stdio=true {{ .MASTER_NAME }}.{{ .NAMESPACE }} 22' ubuntu@{{ .MASTER_NAME }}
 
   clean:
     cmds:

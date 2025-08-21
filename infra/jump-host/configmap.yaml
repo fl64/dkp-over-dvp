@@ -5,4 +5,4 @@ metadata:
   name: jump-host-config
   namespace: dkp-over-dvp
 data:
-  ssh-pub-key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIQNkaNZrgKMUA0Mo73O4fBL2vK8kLBcu0EpUSY114j+ cloud"
+  ssh-pub-key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID60hpJqw1U58nkE1ZyG5utjr3hloBZrvR5MrSMMHArs cloud"
